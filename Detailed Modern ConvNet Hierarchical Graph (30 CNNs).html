@@ -1,0 +1,423 @@
+<script type="text/javascript">
+    var gk_isXlsx = false;
+    var gk_xlsxFileLookup = {};
+    var gk_fileData = {};
+
+    function filledCell(cell) {
+        return cell !== '' && cell != null;
+    }
+
+    function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], {type: 'base64'});
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1, blankrows: false, defval: ''});
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                    row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                    headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, {header: 1});
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+    }
+</script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detailed Modern ConvNet Hierarchical Graph (30 CNNs)</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            overflow: auto;
+        }
+
+        svg {
+            background: #1e293b;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            max-height: 800px;
+        }
+
+        .node circle {
+            stroke: #ffffff;
+            stroke-width: 1.5px;
+            transition: r 0.2s ease;
+            cursor: pointer;
+        }
+
+        .node.classic circle {
+            fill: url(#classic-gradient);
+        }
+
+        .node.modern circle {
+            fill: url(#modern-gradient);
+        }
+
+        .node.lightweight circle {
+            fill: url(#lightweight-gradient);
+        }
+
+        .node.specialized circle {
+            fill: url(#specialized-gradient);
+        }
+
+        .node circle:hover {
+            transform: scale(1.2);
+        }
+
+        .node text {
+            font-size: 11px;
+            fill: #e2e8f0;
+            font-weight: 400;
+            pointer-events: none;
+        }
+
+        .link {
+            stroke: #94a3b8;
+            stroke-opacity: 0.7;
+            stroke-width: 2px;
+            fill: none;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: #334155;
+            color: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            max-width: 200px;
+            line-height: 1.4;
+        }
+
+        .selected circle {
+            stroke: #3b82f6;
+            stroke-width: 3px;
+        }
+
+        .legend {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #334155;
+            padding: 10px;
+            border-radius: 4px;
+            color: #e2e8f0;
+            font-size: 12px;
+        }
+
+        .legend div {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .legend span {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 8px;
+            border-radius: 50%;
+        }
+
+        .white-txt {
+            color: white;
+        }
+
+        .center-txt {
+            text-align: center;
+        }
+
+        .h-100 {
+            height: 100%;
+        }
+
+        .d-flex {
+            display: flex;
+        }
+
+        .flex-dir-col {
+            flex-direction: column;
+        }
+
+        .justify-content-center {
+            justify-content: space-around;
+        }
+
+        .align-items-center {
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+<div class="h-100 d-flex flex-dir-col justify-content-center align-items-center">
+    <div>
+        <svg width="1400" height="900"></svg>
+        <div class="tooltip"></div>
+        <div class="legend">
+            <div><span style="background: linear-gradient(#10b981, #059669)"></span>Classic</div>
+            <div><span style="background: linear-gradient(#3b82f6, #1e40af)"></span>Modern</div>
+            <div><span style="background: linear-gradient(#f59e0b, #b45309)"></span>Lightweight</div>
+            <div><span style="background: linear-gradient(#ec4899, #9d174d)"></span>Specialized</div>
+        </div>
+    </div>
+    <div>
+        <div class="white-txt center-txt">Created by Yasin Gourkani</div>
+        <div class="white-txt center-txt">Email: yassingourkani@outlook.com</div>
+        <div class="white-txt center-txt"><a href="https://www.linkedin.com/in/yassingourkani/" class="white-txt">LinkedIn</a>
+        </div>
+    </div>
+</div>
+<script>
+    // Data: Hierarchical structure of 30 CNNs with details
+    const data = {
+        name: "ConvNets",
+        children: [
+            {
+                name: "Classic",
+                children: [
+                    {name: "LeNet5", params: "0.06M", year: 1998, feature: "Foundational CNN"},
+                    {name: "AlexNet", params: "61M", year: 2012, feature: "Deep Learning Breakthrough"},
+                    {name: "ZFNet", params: "61M", year: 2013, feature: "Visualization Improvements"},
+                    {name: "VGG16", params: "138M", year: 2014, feature: "Small 3x3 Filters"},
+                    {name: "VGG19", params: "143M", year: 2014, feature: "Deeper VGG Variant"}
+                ]
+            },
+            {
+                name: "Modern",
+                children: [
+                    {name: "ResNet18", params: "11.7M", year: 2015, feature: "Residual Connections"},
+                    {name: "ResNet50", params: "25.6M", year: 2015, feature: "Deep Residual Learning"},
+                    {name: "ResNet101", params: "44.5M", year: 2015, feature: "Deeper ResNet"},
+                    {name: "ResNet152", params: "60.2M", year: 2015, feature: "Very Deep ResNet"},
+                    {name: "InceptionV1", params: "6.8M", year: 2014, feature: "Inception Modules"},
+                    {name: "InceptionV3", params: "23.8M", year: 2015, feature: "Factorized Convolutions"},
+                    {name: "InceptionV4", params: "42.7M", year: 2016, feature: "Refined Inception"},
+                    {name: "DenseNet121", params: "8.0M", year: 2017, feature: "Dense Connections"},
+                    {name: "DenseNet169", params: "14.1M", year: 2017, feature: "Deeper DenseNet"},
+                    {name: "DenseNet201", params: "20.0M", year: 2017, feature: "Deepest DenseNet"}
+                ]
+            },
+            {
+                name: "Lightweight",
+                children: [
+                    {name: "MobileNetV1", params: "4.2M", year: 2017, feature: "Depth-wise Separable Convs"},
+                    {name: "MobileNetV2", params: "3.5M", year: 2018, feature: "Inverted Residuals"},
+                    {name: "MobileNetV3", params: "5.4M", year: 2019, feature: "Neural Architecture Search"},
+                    {name: "ShuffleNetV1", params: "1.8M", year: 2017, feature: "Channel Shuffle"},
+                    {name: "ShuffleNetV2", params: "2.3M", year: 2018, feature: "Efficient Channel Shuffle"},
+                    {name: "SqueezeNet", params: "1.2M", year: 2016, feature: "Fire Modules"},
+                    {name: "EfficientNet-B0", params: "5.3M", year: 2019, feature: "Compound Scaling"},
+                    {name: "EfficientNet-B1", params: "7.8M", year: 2019, feature: "Scaled EfficientNet"},
+                    {name: "EfficientNet-B2", params: "9.2M", year: 2019, feature: "Larger EfficientNet"},
+                    {name: "EfficientNet-B3", params: "12.3M", year: 2019, feature: "Further Scaled EfficientNet"}
+                ]
+            },
+            {
+                name: "Specialized",
+                children: [
+                    {name: "Xception", params: "22.9M", year: 2017, feature: "Extreme Inception"},
+                    {name: "ResNeXt50", params: "25.0M", year: 2017, feature: "Cardinality Aggregation"},
+                    {name: "ResNeXt101", params: "44.2M", year: 2017, feature: "Deeper ResNeXt"},
+                    {name: "SENet", params: "28.1M", year: 2017, feature: "Squeeze-and-Excitation"},
+                    {name: "YOLOv3", params: "61.5M", year: 2018, feature: "Object Detection"}
+                ]
+            }
+        ]
+    };
+
+    // Set up SVG
+    const svg = d3.select("svg"),
+        width = +svg.attr("width"),
+        height = +svg.attr("height"),
+        g = svg.append("g").attr("transform", "translate(120,50)");
+
+    // Define gradients for each group
+    const gradients = [
+        {id: "classic-gradient", colors: ["#10b981", "#059669"]},
+        {id: "modern-gradient", colors: ["#3b82f6", "#1e40af"]},
+        {id: "lightweight-gradient", colors: ["#f59e0b", "#b45309"]},
+        {id: "specialized-gradient", colors: ["#ec4899", "#9d174d"]}
+    ];
+
+    svg.append("defs")
+        .selectAll("linearGradient")
+        .data(gradients)
+        .enter()
+        .append("linearGradient")
+        .attr("id", d => d.id)
+        .attr("gradientUnits", "userSpaceOnUse")
+        .attr("x1", 0)
+        .attr("y1", 0)
+        .attr("x2", 0)
+        .attr("y2", 10)
+        .selectAll("stop")
+        .data(d => [
+            {offset: "0%", color: d.colors[0]},
+            {offset: "100%", color: d.colors[1]}
+        ])
+        .enter()
+        .append("stop")
+        .attr("offset", d => d.offset)
+        .attr("stop-color", d => d.color);
+
+    // Create tree layout (horizontal)
+    const tree = d3.tree().size([height - 100, width - 240]);
+    const root = d3.hierarchy(data);
+    tree(root);
+
+    // Zoom behavior
+    const zoom = d3.zoom()
+        .scaleExtent([0.5, 2])
+        .on("zoom", (event) => g.attr("transform", event.transform));
+    svg.call(zoom);
+
+    // Draw links (edges)
+    g.selectAll(".link")
+        .data(root.links())
+        .enter()
+        .append("path")
+        .attr("class", "link")
+        .attr("d", d3.linkHorizontal()
+            .x(d => d.y)
+            .y(d => d.x))
+        .style("stroke-dasharray", "0")
+        .transition()
+        .duration(500)
+        .style("stroke-dasharray", null);
+
+    // Draw nodes
+    const node = g.selectAll(".node")
+        .data(root.descendants())
+        .enter()
+        .append("g")
+        .attr("class", d => `node ${d.parent ? (d.parent.data.name === "ConvNets" ? d.data.name.toLowerCase() : d.parent.data.name.toLowerCase()) : "root"}`)
+        .attr("transform", d => `translate(${d.y},${d.x})`);
+
+    // Add circles with dynamic size based on params
+    node.append("circle")
+        .attr("r", 0)
+        .attr("r", d => {
+            if (!d.data.params) return 8;
+            const params = parseFloat(d.data.params) || 1;
+            return Math.min(Math.max(5, Math.log2(params + 1) * 2), 12);
+        })
+        .transition()
+        .duration(500)
+        .delay((d, i) => i * 30);
+
+    // Add text labels
+    node.append("text")
+        .attr("dy", d => d.children ? -12 : 12)
+        .attr("text-anchor", d => d.children ? "end" : "start")
+        .attr("dx", d => {
+            if (!d.data.params) return d.children ? -8 : 8;
+            const params = parseFloat(d.data.params) || 1;
+            const radius = Math.min(Math.max(5, Math.log2(params + 1) * 2), 12);
+            return d.children ? -(radius + 4) : radius + 4;
+        })
+        .text(d => d.data.params ? `${d.data.name}\n${d.data.params}` : d.data.name)
+        .style("white-space", "pre");
+
+    // Tooltip and interactivity
+    const tooltip = d3.select(".tooltip");
+    node.on("mouseover", function (event, d) {
+        if (d.data.params) {
+            tooltip.style("opacity", 1)
+                .html(`Name: ${d.data.name}<br>Parameters: ${d.data.params}<br>Year: ${d.data.year}<br>Feature: ${d.data.feature}`)
+                .style("left", (event.pageX + 15) + "px")
+                .style("top", (event.pageY - 10) + "px");
+        }
+    })
+        .on("mouseout", () => tooltip.style("opacity", 0))
+        .on("click", function (event, d) {
+            d3.selectAll(".node").classed("selected", false);
+            d3.select(this).classed("selected", true);
+            if (d.children) {
+                d._children = d.children;
+                d.children = null;
+            } else {
+                d.children = d._children;
+                d._children = null;
+            }
+            updateTree();
+        });
+
+    // Update function for collapsible nodes
+    function updateTree() {
+        tree(root);
+        const links = g.selectAll(".link")
+            .data(root.links());
+        links.enter()
+            .append("path")
+            .attr("class", "link")
+            .merge(links)
+            .transition()
+            .duration(500)
+            .attr("d", d3.linkHorizontal()
+                .x(d => d.y)
+                .y(d => d.x));
+        links.exit().remove();
+
+        const nodes = g.selectAll(".node")
+            .data(root.descendants(), d => d.data.name);
+        const nodesEnter = nodes.enter()
+            .append("g")
+            .attr("class", d => `node ${d.parent ? (d.parent.data.name === "ConvNets" ? d.data.name.toLowerCase() : d.parent.data.name.toLowerCase()) : "root"}`);
+        nodesEnter.append("circle")
+            .attr("r", d => {
+                if (!d.data.params) return 8;
+                const params = parseFloat(d.data.params) || 1;
+                return Math.min(Math.max(5, Math.log2(params + 1) * 2), 12);
+            });
+        nodesEnter.append("text")
+            .attr("dy", d => d.children ? -12 : 12)
+            .attr("text-anchor", d => d.children ? "end" : "start")
+            .attr("dx", d => {
+                if (!d.data.params) return d.children ? -8 : 8;
+                const params = parseFloat(d.data.params) || 1;
+                const radius = Math.min(Math.max(5, Math.log2(params + 1) * 2), 12);
+                return d.children ? -(radius + 4) : radius + 4;
+            })
+            .text(d => d.data.params ? `${d.data.name}\n${d.data.params}` : d.data.name)
+            .style("white-space", "pre");
+        nodes.merge(nodesEnter)
+            .transition()
+            .duration(500)
+            .attr("transform", d => `translate(${d.y},${d.x})`);
+        nodes.exit().remove();
+    }
+</script>
+</body>
+</html>
